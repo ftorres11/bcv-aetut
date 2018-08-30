@@ -1,11 +1,15 @@
 import torch
 import torch.nn as nn
+import torch.optim as optim
 import torch.utils.data as Data
 from torchvision.datasets import MNIST
 import torchvision
 
 
 BATCH_SIZE = 64
+lr = 0.0001
+momentum = 0.9
+n_epochs = 10
 ROOT_MNIST = './dataset'
 
 MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, transform=torchvision.transforms.ToTensor())
@@ -29,8 +33,7 @@ class Noisy_MNIST():
         noisy = noisy*(noisy<1) + noisy>=1
         return {'image':im, 'noisy':noisy, 'label':label}
 
-train = Data.DataLoader(dataset = Noisy_MNIST(),batch_size = BATCH_SIZE, shuffle = True)
-    
+
 
 class AutoEncoder(nn.Module):
     def __init__(self, features):
@@ -53,13 +56,33 @@ class AutoEncoder(nn.Module):
             )
 
     def forward(self,x, batch_size):
-        x = x.view(batch_size, -1)
         Enc = self.Encoder(x)
         Dec = self.Decoder(Enc)
 
         return Enc, Dec
 
 
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+train = Data.DataLoader(dataset = Noisy_MNIST(),batch_size = BATCH_SIZE, shuffle = True)
+model = Autoencoder(features = 32)
+loss_function = nn.MSELoss().to(device)
+optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
+model.to(device)
+
+for epoch in range(n_epochs):
+    running_loss = 0
+    for idx, dicc in enumerate(train):
+        image = dicc['noisy'].to(device, dtype = torch.float)
+        label = dicc['image'].to(device, dtype = torch.float)
+
+        image = model(image)
+        loss = loss_function(image,label)
+        running_loss += loss.item()
+        loss.backward() 
+        optimizer.step()
+
+        if idx%71 == 0:
+            print('Running loss:', running_loss)
 
 
 '''
