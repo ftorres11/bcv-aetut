@@ -44,8 +44,8 @@ except AttributeError:
 BATCH_SIZE = 2048
 lr = 0.000001
 momentum = 0.9
-n_epochs = 150
-noise_level = 0
+n_epochs = 30
+noise_level = 0.1
 mkimage = True
 ROOT_MNIST = './dataset'
 LOSS_PATH = '../results'
@@ -74,8 +74,9 @@ class Noisy_MNIST():
         item = self.getitem(idx)
         im = item[0].view(-1)
         label = item[1]
-        noisy = im.clone() + torch.rand(28*28)<self.noise_level
-        noisy = noisy*(noisy<1) + noisy>=1
+        noisy = im.clone() + (torch.rand(28*28)<self.noise_level).float()
+        noisy = noisy*((noisy<1).float()) + (noisy>=1).float()
+        print(noisy)
         return {'image':im, 'noisy':noisy, 'label':label}
 
 
@@ -157,20 +158,20 @@ for epoch in range(n_epochs):
     print('Epoch:',epoch+1)
     temp.print_message(epoch, timer, n_epochs)
     for idx, dicc in enumerate(train):
-        image = dicc['noisy'].to(device, dtype = torch.float)
+        images = dicc['noisy'].to(device, dtype = torch.float)
         label = dicc['image'].to(device, dtype = torch.float)
-        _, image = model(image,BATCH_SIZE)
+        _, image = model(images,BATCH_SIZE)
         loss = loss_function(image,label)
         running_loss += loss.item()/float(BATCH_SIZE)
         loss.backward() 
         optimizer.step()
-        print(image.shape)
         if (idx)%(total//(BATCH_SIZE*10)) == 0 or idx == total//BATCH_SIZE-1:
             print('Process: {:.4f}'.format((idx+1)*BATCH_SIZE/total),'% | Running loss: {:.4f}'.format( running_loss))
-        if mkimage:
-            # take first image
-            picture = (255*image[1,:]).view(28,28).to('cpu').detach().numpy().astype(np.uint8)
-            imageio.imwrite(join(LOSS_PATH,str(epoch)+'_'+str(idx)+'.png'),picture)
+            if mkimage:
+                # take first image
+                picture = (255*image[1,:]).view(28,28).to('cpu').detach().numpy().astype(np.uint8)
+                orig = (255*images[1,:]).view(28,28).to('cpu').detach().numpy().astype(np.uint8)
+                imageio.imwrite(join(LOSS_PATH,str(epoch)+'_'+str(idx)+'.png'),np.concatenate((orig,picture), axis = 1))
 
 
 
