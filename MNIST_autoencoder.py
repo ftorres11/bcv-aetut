@@ -11,23 +11,26 @@ import matplotlib.pyplot as plt
 import os
 
 os.environ["CUDA_VISIBLE_DEVICES"]="2"
+os.system('clear')
 
 BATCH_SIZE = 64
-lr = 0.0001
+lr = 0.000001
 momentum = 0.9
-n_epochs = 10
+n_epochs = 100
+noise_level = 0
 ROOT_MNIST = './dataset'
 LOSS_PATH = '.'
-
+join = os.path.join
 MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, transform=torchvision.transforms.ToTensor())
 train_loader = Data.DataLoader(dataset=MNIST_db, batch_size=BATCH_SIZE, shuffle=True)
 
 
 class Noisy_MNIST():
-    def __init__(self):
+    def __init__(self, noise_level = noise_level):
         MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, transform=torchvision.transforms.ToTensor())
         self.getitem = MNIST_db.__getitem__
         self.len = MNIST_db.__len__()
+        self.noise_level = noise_level
 
     def __len__(self):
         return self.len
@@ -36,7 +39,7 @@ class Noisy_MNIST():
         item = self.getitem(idx)
         im = item[0].view(-1)
         label = item[1]
-        noisy = im.clone() + torch.rand(28*28)<0.1
+        noisy = im.clone() + torch.rand(28*28)<self.noise_level
         noisy = noisy*(noisy<1) + noisy>=1
         return {'image':im, 'noisy':noisy, 'label':label}
 
@@ -102,7 +105,7 @@ class VarationalAutoEncoder(nn.Module):
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-train = Data.DataLoader(dataset = Noisy_MNIST(),batch_size = BATCH_SIZE, shuffle = True)
+train = Data.DataLoader(dataset = Noisy_MNIST(noise_level = noise_level),batch_size = BATCH_SIZE, shuffle = True)
 model = AutoEncoder(features = 32)
 loss_function = nn.MSELoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
@@ -111,18 +114,17 @@ plotloss = [0 for _ in range(n_epochs)]
 
 for epoch in range(n_epochs):
     running_loss = 0
-    print('Epoch ')
+    print('Epoch:',epoch+1)
     for idx, dicc in enumerate(train):
         image = dicc['noisy'].to(device, dtype = torch.float)
         label = dicc['image'].to(device, dtype = torch.float)
-
-        image = model(image,BATCH_SIZE)
+        _, image = model(image,BATCH_SIZE)
         loss = loss_function(image,label)
         running_loss += loss.item()
         loss.backward() 
         optimizer.step()
 
-        if idx%71 == 0:
+        if (idx/2)%71 == 0:
             print('Running loss:', running_loss)
 
     plotloss[epoch] = running_loss
@@ -130,7 +132,7 @@ for epoch in range(n_epochs):
 
 
 fig = plt.figure()
-plt.plot([i+1 for i in range(len(val_vec))],training_vec , 'b', [i+1 for i in range(len(val_vec))], val_vec, 'r')
+plt.plot([i+1 for i in range(len(plotloss))], plotloss, 'r')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.savefig(join(LOSS_PATH,'running_loss.png'))
