@@ -139,8 +139,8 @@ class VarationalAutoEncoder(nn.Module):
 
         return x
 
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+device = toch.device('cpu')
+#device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 train = Data.DataLoader(dataset = Noisy_MNIST(noise_level = noise_level),batch_size = BATCH_SIZE, shuffle = True)
 
 model = AutoEncoder(features = 32)
