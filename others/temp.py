@@ -27,9 +27,12 @@ def get_time(ETF):
 
 
 def print_message(epoch, timer, n_epochs):
+    print('='*75)
     if epoch == 0:
-            timer.tic()
+        timer.tic()
+        print('Epoch:',epoch+1,'/',n_epochs,'| Initiating timer')
     else:
         ETF = timer.toc()
         time, units = get_time(int((n_epochs - epoch)*ETF//(epoch+1)))
         print('Epoch ==>',epoch+1,'/',n_epochs,'| Estimated time:',time ,units)
+    print('='*75)

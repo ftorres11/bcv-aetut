@@ -42,10 +42,10 @@ except AttributeError:
 # Parameters
 
 BATCH_SIZE = 2048
-lr = 0.000001
+lr = 0.0001
 momentum = 0.9
-n_epochs = 30
-noise_level = 0.1
+n_epochs = 500
+noise_level = 0.05
 mkimage = True
 ROOT_MNIST = './dataset'
 LOSS_PATH = '../results'
@@ -76,7 +76,7 @@ class Noisy_MNIST():
         label = item[1]
         noisy = im.clone() + (torch.rand(28*28)<self.noise_level).float()
         noisy = noisy*((noisy<1).float()) + (noisy>=1).float()
-        print(noisy)
+        #print(noisy)
         return {'image':im, 'noisy':noisy, 'label':label}
 
 
@@ -154,15 +154,13 @@ timer = temp.Timer()
 
 for epoch in range(n_epochs):
     running_loss = 0
-    print('-'*75)
-    print('Epoch:',epoch+1)
     temp.print_message(epoch, timer, n_epochs)
     for idx, dicc in enumerate(train):
         images = dicc['noisy'].to(device, dtype = torch.float)
         label = dicc['image'].to(device, dtype = torch.float)
         _, image = model(images,BATCH_SIZE)
         loss = loss_function(image,label)
-        running_loss += loss.item()/float(BATCH_SIZE)
+        running_loss += loss.item()#/float(BATCH_SIZE)
         loss.backward() 
         optimizer.step()
         if (idx)%(total//(BATCH_SIZE*10)) == 0 or idx == total//BATCH_SIZE-1:
@@ -172,6 +170,7 @@ for epoch in range(n_epochs):
                 picture = (255*image[1,:]).view(28,28).to('cpu').detach().numpy().astype(np.uint8)
                 orig = (255*images[1,:]).view(28,28).to('cpu').detach().numpy().astype(np.uint8)
                 imageio.imwrite(join(LOSS_PATH,str(epoch)+'_'+str(idx)+'.png'),np.concatenate((orig,picture), axis = 1))
+    print('Total loss: {:.6}'.format(running_loss))
 
 
 
