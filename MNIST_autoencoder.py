@@ -9,9 +9,13 @@ import torch.optim as optim
 import torch.utils.data as Data
 import matplotlib.pyplot as plt
 from torchvision.datasets import MNIST
+from others import temp
 
 #-------------------------------------------------------------------------
 # Checking compatibility
+os.system('clear')
+os.environ["CUDA_VISIBLE_DEVICES"]="2"
+
 try:
     torch._utils._rebuild_tensor_v2
 except AttributeError:
@@ -24,10 +28,10 @@ except AttributeError:
         return tensor
     torch._utils._rebuild_tensor_v2 = _rebuild_tensor_v2
 
-BATCH_SIZE = 1024
+BATCH_SIZE = 2048
 lr = 0.000001
 momentum = 0.9
-n_epochs = 100
+n_epochs = 150
 noise_level = 0
 ROOT_MNIST = './dataset'
 LOSS_PATH = '.'
@@ -35,6 +39,7 @@ join = os.path.join
 MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, transform=torchvision.transforms.ToTensor())
 train_loader = Data.DataLoader(dataset=MNIST_db, batch_size=BATCH_SIZE, shuffle=True)
 
+name = 'RL_'+str(lr)+'_'+str(n_epochs)+'_'+str(BATCH_SIZE)+'.png'
 
 class Noisy_MNIST():
     def __init__(self, noise_level = noise_level):
@@ -117,16 +122,21 @@ class VarationalAutoEncoder(nn.Module):
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 train = Data.DataLoader(dataset = Noisy_MNIST(noise_level = noise_level),batch_size = BATCH_SIZE, shuffle = True)
+
 model = AutoEncoder(features = 32)
 loss_function = nn.MSELoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
 model.to(device)
+
+
 plotloss = [0 for _ in range(n_epochs)]
+timer = temp.Timer()
 
 for epoch in range(n_epochs):
     running_loss = 0
     print('-'*75)
     print('Epoch:',epoch+1)
+    temp.print_message(epoch, timer, n_epochs)
     for idx, dicc in enumerate(train):
         image = dicc['noisy'].to(device, dtype = torch.float)
         label = dicc['image'].to(device, dtype = torch.float)
@@ -147,7 +157,7 @@ fig = plt.figure()
 plt.plot([i+1 for i in range(len(plotloss))], plotloss, 'r')
 plt.xlabel('Epoch')
 plt.ylabel('Loss')
-plt.savefig(join(LOSS_PATH,'running_loss.png'))
+plt.savefig(join(LOSS_PATH,name))
 plt.close(fig)
 
 '''
