@@ -1,15 +1,22 @@
-import os
-import pdb
+
+# Torch imports
 import torch
-import matplotlib
 import torchvision
-matplotlib.use('Agg')
 import torch.nn as nn
 import torch.optim as optim
 import torch.utils.data as Data
+
+# Other imports
+import os
+import pdb
+import imageio
+import matplotlib
+matplotlib.use('Agg')
+from others import temp
 import matplotlib.pyplot as plt
 from torchvision.datasets import MNIST
-from others import temp
+
+
 
 
 os.system('clear')
@@ -159,6 +166,14 @@ for epoch in range(n_epochs):
 
         if (idx)%(total//(BATCH_SIZE*10)) == 0 or idx == total//BATCH_SIZE-1:
             print('Process: {:.4f}'.format((idx+1)*BATCH_SIZE/total),'% | Running loss: {:.4f}'.format( running_loss))
+        if mkimage:
+            # take first image
+            picture = (255*image[:,1]).view(28,28).to('cpu').numpy().astype(np.uint8)
+            imageio.imwrite(join(LOSS_PATH,str(epoch)+'_'+str(idx)+'.png'),picture)
+
+
+
+
 
     plotloss[epoch] = running_loss
 
