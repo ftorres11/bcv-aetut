@@ -11,6 +11,7 @@ import os
 import pdb
 import imageio
 import matplotlib
+import numpy as np
 matplotlib.use('Agg')
 from others import temp
 import matplotlib.pyplot as plt
@@ -47,7 +48,7 @@ n_epochs = 150
 noise_level = 0
 mkimage = True
 ROOT_MNIST = './dataset'
-LOSS_PATH = '~/AML/presentacion/results'
+LOSS_PATH = '../results'
 
 
 
@@ -163,12 +164,12 @@ for epoch in range(n_epochs):
         running_loss += loss.item()/float(BATCH_SIZE)
         loss.backward() 
         optimizer.step()
-
+        print(image.shape)
         if (idx)%(total//(BATCH_SIZE*10)) == 0 or idx == total//BATCH_SIZE-1:
             print('Process: {:.4f}'.format((idx+1)*BATCH_SIZE/total),'% | Running loss: {:.4f}'.format( running_loss))
         if mkimage:
             # take first image
-            picture = (255*image[:,1]).view(28,28).to('cpu').numpy().astype(np.uint8)
+            picture = (255*image[1,:]).view(28,28).to('cpu').detach().numpy().astype(np.uint8)
             imageio.imwrite(join(LOSS_PATH,str(epoch)+'_'+str(idx)+'.png'),picture)
 
 
