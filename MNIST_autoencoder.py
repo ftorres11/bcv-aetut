@@ -11,10 +11,12 @@ import matplotlib.pyplot as plt
 from torchvision.datasets import MNIST
 from others import temp
 
-#-------------------------------------------------------------------------
-# Checking compatibility
+
 os.system('clear')
 os.environ["CUDA_VISIBLE_DEVICES"]="2"
+
+#-------------------------------------------------------------------------
+# Checking compatibility
 
 try:
     torch._utils._rebuild_tensor_v2
@@ -28,16 +30,25 @@ except AttributeError:
         return tensor
     torch._utils._rebuild_tensor_v2 = _rebuild_tensor_v2
 
+#-------------------------------------------------------------------------
+# Parameters
+
 BATCH_SIZE = 2048
 lr = 0.000001
 momentum = 0.9
 n_epochs = 150
 noise_level = 0
+mkimage = True
 ROOT_MNIST = './dataset'
-LOSS_PATH = '.'
+LOSS_PATH = '~/AML/presentacion/results'
+
+
+
+
 join = os.path.join
 MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, transform=torchvision.transforms.ToTensor())
 train_loader = Data.DataLoader(dataset=MNIST_db, batch_size=BATCH_SIZE, shuffle=True)
+total = MNIST_db.__len__()
 
 name = 'RL_'+str(lr)+'_'+str(n_epochs)+'_'+str(BATCH_SIZE)+'.png'
 
@@ -146,8 +157,8 @@ for epoch in range(n_epochs):
         loss.backward() 
         optimizer.step()
 
-        if (idx/2)%71 == 0:
-            print('Running loss: {:.4f}'.format( running_loss))
+        if (idx)%(total//(BATCH_SIZE*10)) == 0 or idx == total//BATCH_SIZE-1:
+            print('Process: {:.4f}'.format((idx+1)*BATCH_SIZE/total),'% | Running loss: {:.4f}'.format( running_loss))
 
     plotloss[epoch] = running_loss
 
