@@ -1,6 +1,7 @@
 import os
 import pdb
 import torch
+import argparse
 import matplotlib
 import torchvision
 matplotlib.use('Agg')
@@ -11,18 +12,10 @@ import matplotlib.pyplot as plt
 from torchvision.datasets import MNIST
 
 #-------------------------------------------------------------------------
-# Checking compatibility
-try:
-    torch._utils._rebuild_tensor_v2
-except AttributeError:
-    def _rebuild_tensor_v2(storage, storage_offset, size, stride, 
-            requires_grad, backward_hooks):
-        tensor = torch._utils._rebuild_tensor(storage, storage_offset, 
-            size, stride)
-        tensor.requires_grad = requires_grad
-        tensor._backward_hooks = backward_hooks
-        return tensor
-    torch._utils._rebuild_tensor_v2 = _rebuild_tensor_v2
+parser = argparse.ArgumenParser(description='Autoencoder trained on MNIST')
+parser.add_argument('--bsz',type=int,default=64,help='Batch size')
+parser.add_argument('--lr',type=float,default=1e-4,help='Learning rate')
+parser.add_argument('--ep',type=int,default=100,help='Number of Epochs')
 
 BATCH_SIZE = 1024
 lr = 0.000001
@@ -125,7 +118,6 @@ plotloss = [0 for _ in range(n_epochs)]
 
 for epoch in range(n_epochs):
     running_loss = 0
-    print('-'*75)
     print('Epoch:',epoch+1)
     for idx, dicc in enumerate(train):
         image = dicc['noisy'].to(device, dtype = torch.float)
@@ -137,7 +129,7 @@ for epoch in range(n_epochs):
         optimizer.step()
 
         if (idx/2)%71 == 0:
-            print('Running loss: {:.4f}'.format( running_loss))
+            print('Running loss:', running_loss)
 
     plotloss[epoch] = running_loss
 
