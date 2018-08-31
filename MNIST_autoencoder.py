@@ -5,12 +5,19 @@ import torch.utils.data as Data
 from torchvision.datasets import MNIST
 import torchvision
 
+import matplotlib
+matplotlib.use('Agg')
+import matplotlib.pyplot as plt
+import os
+
+os.environ["CUDA_VISIBLE_DEVICES"]="3"
 
 BATCH_SIZE = 64
 lr = 0.0001
 momentum = 0.9
 n_epochs = 10
 ROOT_MNIST = './dataset'
+LOSS_PATH = '.'
 
 MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, transform=torchvision.transforms.ToTensor())
 train_loader = Data.DataLoader(dataset=MNIST_db, batch_size=BATCH_SIZE, shuffle=True)
@@ -36,14 +43,14 @@ class Noisy_MNIST():
 
 
 class AutoEncoder(nn.Module):
-    def __init__(self, features):
+    def __init__(self, features = 32):
         super(AutoEncoder,self).__init__()
         self.Encoder = nn.Sequential(
             nn.Linear(in_features = 28*28, out_features = 512),
             nn.ReLU(),
             nn.Linear(in_features = 512, out_features = 128),
             nn.ReLU(),
-            nn.Linear(in_features = 128, out_features = features)
+            nn.Linear(in_features = 128, out_features = features),
             nn.ReLU()
             )
         self.Decoder = nn.Sequential(
@@ -51,7 +58,7 @@ class AutoEncoder(nn.Module):
             nn.ReLU(),
             nn.Linear(in_features = 128, out_features = 512),
             nn.ReLU(),
-            nn.Linear(in_features = 512, out_features = 28*28)
+            nn.Linear(in_features = 512, out_features = 28*28),
             nn.ReLU()
             )
 
@@ -64,18 +71,20 @@ class AutoEncoder(nn.Module):
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 train = Data.DataLoader(dataset = Noisy_MNIST(),batch_size = BATCH_SIZE, shuffle = True)
-model = Autoencoder(features = 32)
+model = AutoEncoder(features = 32)
 loss_function = nn.MSELoss().to(device)
 optimizer = optim.SGD(model.parameters(), lr=lr, momentum=momentum)
 model.to(device)
+plotloss = [0 for _ in range(n_epochs)]
 
 for epoch in range(n_epochs):
     running_loss = 0
+    print('Epoch ')
     for idx, dicc in enumerate(train):
         image = dicc['noisy'].to(device, dtype = torch.float)
         label = dicc['image'].to(device, dtype = torch.float)
 
-        image = model(image)
+        image = model(image,BATCH_SIZE)
         loss = loss_function(image,label)
         running_loss += loss.item()
         loss.backward() 
@@ -84,6 +93,16 @@ for epoch in range(n_epochs):
         if idx%71 == 0:
             print('Running loss:', running_loss)
 
+    plotloss[epoch] = running_loss
+
+
+
+fig = plt.figure()
+plt.plot([i+1 for i in range(len(val_vec))],training_vec , 'b', [i+1 for i in range(len(val_vec))], val_vec, 'r')
+plt.xlabel('Epoch')
+plt.ylabel('Loss')
+plt.savefig(join(LOSS_PATH,'running_loss.png'))
+plt.close(fig)
 
 '''
 class Autoencoder(nn.Module):
