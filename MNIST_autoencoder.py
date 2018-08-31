@@ -68,6 +68,38 @@ class AutoEncoder(nn.Module):
 
         return Enc, Dec
 
+class VarationalAutoEncoder(nn.Module):
+    def __init__(self, features = 32):
+        super(VarationalAutoEncoder,self).__init__()
+
+        self.CuttedEncoder = nn.Sequential(
+            nn.Linear(in_features = 28*28, out_features = 512),
+            nn.ReLU(),
+            nn.Linear(in_features = 512, out_features = 128),
+            nn.ReLU()
+            )
+
+        self.Variance = nn.Linear(in_features = 128, out_features = features)
+        self.Mu = nn.Linear(in_features = 128, out_features = features)
+
+        self.Decoder = nn.Sequential(
+            nn.Linear(in_features = features, out_features = 128),
+            nn.ReLU(),
+            nn.Linear(in_features = 128, out_features = 512),
+            nn.ReLU(),
+            nn.Linear(in_features = 512, out_features = 28*28),
+            nn.ReLU()
+            )
+
+
+
+    def forward(self,x, batch_size):
+        x = self.CuttedEncoder(x)
+        x = self.Mu(x) + self.Variance(x)*torch.randn(x.shape)
+        x = self.Decoder(x)
+
+        return x
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 train = Data.DataLoader(dataset = Noisy_MNIST(),batch_size = BATCH_SIZE, shuffle = True)
