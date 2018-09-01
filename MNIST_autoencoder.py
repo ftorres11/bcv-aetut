@@ -89,7 +89,7 @@ MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, transform=torc
 train_loader = Data.DataLoader(dataset=MNIST_db, batch_size=BATCH_SIZE, shuffle=True)
 total = MNIST_db.__len__()
 
-name = 'RL_'+str(lr)+'_'+str(n_epochs)+'_'+str(BATCH_SIZE)+'.png'
+name = 'RL_lr'+str(lr)+'_e'+str(n_epochs)+'_bs'+str(BATCH_SIZE)+'_n'+str(noise_level) + '.png'
 if os.path.exists(join(LOSS_PATH,name[:-4])):
     os.system('rm -r '+join(LOSS_PATH,name[:-4]))
 
