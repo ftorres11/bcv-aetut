@@ -89,7 +89,7 @@ MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, transform=torc
 train_loader = Data.DataLoader(dataset=MNIST_db, batch_size=BATCH_SIZE, shuffle=True)
 total = MNIST_db.__len__()
 
-name = 'RL_lr'+str(lr)+'_e'+str(n_epochs)+'_bs'+str(BATCH_SIZE)+'_n'+str(noise_level) + '.png'
+name = 'VAE_RL_lr'+str(lr)+'_e'+str(n_epochs)+'_bs'+str(BATCH_SIZE)+'_n'+str(noise_level) + '.png'
 if os.path.exists(join(LOSS_PATH,name[:-4])):
     os.system('rm -r '+join(LOSS_PATH,name[:-4]))
 
@@ -108,6 +108,7 @@ class Noisy_MNIST():
     def __getitem__(self,idx):
         item = self.getitem(idx)
         im = item[0].view(-1)
+        im.requires_grad = False
         label = item[1]
         noisy = im.clone() + (torch.rand(28*28)<self.noise_level).float()
         noisy = noisy*((noisy<1).float()) + (noisy>=1).float()
@@ -146,33 +147,33 @@ class AutoEncoder(nn.Module):
         return Enc, Dec
 
 class VarationalAutoEncoder(nn.Module):
-    def __init__(self, features = 32):
+    def __init__(self, features = 10):
         super(VarationalAutoEncoder,self).__init__()
-
+        self.features = features
         self.CuttedEncoder = nn.Sequential(
-            nn.Linear(in_features = 28*28, out_features = 128),
+            nn.Linear(in_features = 28*28, out_features = 256),
             nn.ReLU(),
-            nn.Linear(in_features = 128, out_features = 64),
+            nn.Linear(in_features = 256, out_features = 64),
             nn.ReLU()
             )
 
         self.Variance = nn.Linear(in_features = 64, out_features = features)
-        self.Mu = nn.Linear(in_features = 128, out_features = features)
+        self.Mu = nn.Linear(in_features = 64, out_features = features)
 
         self.Decoder = nn.Sequential(
-            nn.Linear(in_features = features, out_features = 128),
+            nn.Linear(in_features = features, out_features = 64),
             nn.ReLU(),
-            nn.Linear(in_features = 128, out_features = 512),
+            nn.Linear(in_features = 64, out_features = 256),
             nn.ReLU(),
-            nn.Linear(in_features = 512, out_features = 28*28),
+            nn.Linear(in_features = 256, out_features = 28*28),
             nn.ReLU()
             )
 
 
 
-    def forward(self,x, batch_size):
+    def forward(self,x):
         x = self.CuttedEncoder(x)
-        x = self.Mu(x) + self.Variance(x)*torch.randn(x.shape)
+        x = self.Mu(x) + self.Variance(x)*(torch.randn(x.shape[0],self.features).to(device))
         x = self.Decoder(x)
 
         return x
@@ -180,7 +181,8 @@ class VarationalAutoEncoder(nn.Module):
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 train = Data.DataLoader(dataset = Noisy_MNIST(noise_level = noise_level),batch_size = BATCH_SIZE, shuffle = True)
 
-model = AutoEncoder(features = 3)
+#model = AutoEncoder(features = 3)
+model = VarationalAutoEncoder(features = 10) 
 loss_function = nn.MSELoss().to(device)
 optimizer = optim.Adam(
 model.parameters(), lr=lr, weight_decay=1e-5)
@@ -198,7 +200,8 @@ for epoch in range(n_epochs):
         images = dicc['noisy'].to(device, dtype = torch.float)
         label = dicc['image'].to(device, dtype = torch.float)
         # ================== FORWARD =================
-        _, image = model(images)
+        #_, image = model(images)
+        image = model(images)
         loss = loss_function(image,label)
         #================== BACKWARD =================
         optimizer.zero_grad()
