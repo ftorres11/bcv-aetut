@@ -18,6 +18,8 @@ from others import temp
 import matplotlib.pyplot as plt
 from torchvision.datasets import MNIST
 
+import encoders.model1 as AE_gen
+
 
 
 
@@ -44,7 +46,7 @@ except AttributeError:
 
 def parse_args():
     """Parse input arguments"""
-    parser = argparse.ArgumentParser(description='Train a karyotype network')
+    parser = argparse.ArgumentParser(description='Train an autoencoder network')
 
     # Epoch
     parser.add_argument(
@@ -121,23 +123,19 @@ class AutoEncoder(nn.Module):
     def __init__(self, features = 32):
         super(AutoEncoder,self).__init__()
         self.Encoder = nn.Sequential(
-            nn.Linear(in_features = 28*28, out_features = 128),
+            nn.Linear(in_features = 28*28, out_features = 256),
             nn.ReLU(),
-            nn.Linear(in_features = 128, out_features = 64),
+            nn.Linear(in_features = 256, out_features = 64),
             nn.ReLU(),
-            nn.Linear(in_features = 64, out_features = 12),
-            nn.ReLU(),
-            nn.Linear(in_features = 12, out_features = 3)
+            nn.Linear(in_features = 64, out_features = 10)
 
             )
         self.Decoder = nn.Sequential(
-            nn.Linear(in_features = 3, out_features = 12),
+            nn.Linear(in_features = 10, out_features = 64),
             nn.ReLU(),
-            nn.Linear(in_features = 12, out_features = 64),
+            nn.Linear(in_features = 64, out_features = 254),
             nn.ReLU(),
-            nn.Linear(in_features = 64, out_features = 128),
-            nn.ReLU(),
-            nn.Linear(in_features = 128, out_features = 28*28)
+            nn.Linear(in_features = 254, out_features = 28*28)
             )
 
     def forward(self,x):
@@ -146,57 +144,13 @@ class AutoEncoder(nn.Module):
 
         return Enc, Dec
 
-class VarationalAutoEncoder(nn.Module):
-    def __init__(self, features = 10):
-        super(VarationalAutoEncoder,self).__init__()
-        self.features = features
-        self.CuttedEncoder = nn.Sequential(
-            nn.Linear(in_features = 28*28, out_features = 256),
-            nn.ReLU(),
-            nn.Linear(in_features = 256, out_features = 64),
-            nn.ReLU()
-            )
-
-        self.Variance = nn.Linear(in_features = 64, out_features = features)
-        self.Mu = nn.Linear(in_features = 64, out_features = features)
-
-        self.Decoder = nn.Sequential(
-            nn.Linear(in_features = features, out_features = 64),
-            nn.ReLU(),
-            nn.Linear(in_features = 64, out_features = 256),
-            nn.ReLU(),
-            nn.Linear(in_features = 256, out_features = 28*28),
-            nn.ReLU()
-            )
-
-    def forward(self,x):
-        x = self.CuttedEncoder(x)
-        mu = self.Mu(x)
-        variance = self.Variance(x)
-        x = mu + variance*(torch.randn(x.shape[0],self.features).to(device))
-        x = self.Decoder(x)
-
-        return x, mu, variance
-
-class VAE_loss(nn.Module):
-    def __init__(self):
-        super(VAE_loss,self).__init__()
-        self.reconstruction_loss = nn.MSELoss()
-    def forward(self, image, label, mu, variance):
-        R_L = self.reconstruction_loss(image,label)
-        mDKL = -0.5*torch.sum(1+torch.log(variance*variance)-mu*mu-variance*variance)
-        return R_L+mDKL
-
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 train = Data.DataLoader(dataset = Noisy_MNIST(noise_level = noise_level),batch_size = BATCH_SIZE, shuffle = True)
 
-model = VarationalAutoEncoder(features = 10)
-loss_function = VAE_loss().to(device)
-
-# model = AutoEncoder(features = 3)
-# loss_function = nn.MSELoss().to(device)
+model = AE_gen.Autoencoder(enc = [[28*28,256],[256,64],[64,10]], dec = [[10,64],[64,256],[256,28*28]])
+loss_function = nn.MSELoss().to(device)
 
 optimizer = optim.Adam(
 model.parameters(), lr=lr, weight_decay=1e-5)
@@ -215,8 +169,8 @@ for epoch in range(n_epochs):
         label = dicc['image'].to(device, dtype = torch.float)
         # ================== FORWARD =================
         #_, image = model(images)
-        image, mu, variance = model(images)
-        loss = loss_function(image,label,mu, variance)
+        image = model(images)
+        loss = loss_function(image,label)
         # ================= BACKWARD =================
         optimizer.zero_grad()
         loss.backward() 
