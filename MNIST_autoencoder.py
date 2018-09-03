@@ -21,8 +21,6 @@ from torchvision.datasets import MNIST
 import encoders.model1 as AE_gen
 
 
-
-
 os.system('clear')
 os.environ["CUDA_VISIBLE_DEVICES"]="2"
 
@@ -84,8 +82,6 @@ ROOT_MNIST = './dataset'
 LOSS_PATH = '../results'
 
 
-
-
 join = os.path.join
 MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, transform=torchvision.transforms.ToTensor())
 train_loader = Data.DataLoader(dataset=MNIST_db, batch_size=BATCH_SIZE, shuffle=True)
@@ -116,33 +112,6 @@ class Noisy_MNIST():
         noisy = noisy*((noisy<1).float()) + (noisy>=1).float()
         #print(noisy)
         return {'image':im, 'noisy':noisy, 'label':label}
-
-
-
-class AutoEncoder(nn.Module):
-    def __init__(self, features = 32):
-        super(AutoEncoder,self).__init__()
-        self.Encoder = nn.Sequential(
-            nn.Linear(in_features = 28*28, out_features = 256),
-            nn.ReLU(),
-            nn.Linear(in_features = 256, out_features = 64),
-            nn.ReLU(),
-            nn.Linear(in_features = 64, out_features = 10)
-
-            )
-        self.Decoder = nn.Sequential(
-            nn.Linear(in_features = 10, out_features = 64),
-            nn.ReLU(),
-            nn.Linear(in_features = 64, out_features = 254),
-            nn.ReLU(),
-            nn.Linear(in_features = 254, out_features = 28*28)
-            )
-
-    def forward(self,x):
-        Enc = self.Encoder(x)
-        Dec = self.Decoder(Enc)
-
-        return Enc, Dec
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
