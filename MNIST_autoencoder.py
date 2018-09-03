@@ -89,7 +89,7 @@ MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, transform=torc
 train_loader = Data.DataLoader(dataset=MNIST_db, batch_size=BATCH_SIZE, shuffle=True)
 total = MNIST_db.__len__()
 
-name = 'VAE_RL_lr'+str(lr)+'_e'+str(n_epochs)+'_bs'+str(BATCH_SIZE)+'_n'+str(noise_level) + '.png'
+name = 'VAE_Loss_RL_lr'+str(lr)+'_e'+str(n_epochs)+'_bs'+str(BATCH_SIZE)+'_n'+str(noise_level) + '.png'
 if os.path.exists(join(LOSS_PATH,name[:-4])):
     os.system('rm -r '+join(LOSS_PATH,name[:-4]))
 
@@ -169,21 +169,35 @@ class VarationalAutoEncoder(nn.Module):
             nn.ReLU()
             )
 
-
-
     def forward(self,x):
         x = self.CuttedEncoder(x)
-        x = self.Mu(x) + self.Variance(x)*(torch.randn(x.shape[0],self.features).to(device))
+        mu = self.Mu(x)
+        variance = self.Variance(x)
+        x = mu + variance*(torch.randn(x.shape[0],self.features).to(device))
         x = self.Decoder(x)
 
-        return x
+        return x, mu, variance
+
+class VAE_loss(nn.Module):
+    def __init__(self):
+        super(VAE_loss,self).__init__()
+        self.reconstruction_loss = nn.MSELoss()
+    def forward(self, image, label, mu, variance):
+        R_L = self.reconstruction_loss(image,label)
+        mDKL = -0.5*torch.sum(1+torch.log(variance*variance)-mu*mu-variance*variance)
+        return R_L+mDKL
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+
 train = Data.DataLoader(dataset = Noisy_MNIST(noise_level = noise_level),batch_size = BATCH_SIZE, shuffle = True)
 
-#model = AutoEncoder(features = 3)
-model = VarationalAutoEncoder(features = 10) 
-loss_function = nn.MSELoss().to(device)
+model = VarationalAutoEncoder(features = 10)
+loss_function = VAE_loss().to(device)
+
+# model = AutoEncoder(features = 3)
+# loss_function = nn.MSELoss().to(device)
+
 optimizer = optim.Adam(
 model.parameters(), lr=lr, weight_decay=1e-5)
 model.to(device)
@@ -201,9 +215,9 @@ for epoch in range(n_epochs):
         label = dicc['image'].to(device, dtype = torch.float)
         # ================== FORWARD =================
         #_, image = model(images)
-        image = model(images)
-        loss = loss_function(image,label)
-        #================== BACKWARD =================
+        image, mu, variance = model(images)
+        loss = loss_function(image,label,mu, variance)
+        # ================= BACKWARD =================
         optimizer.zero_grad()
         loss.backward() 
         optimizer.step()
@@ -228,39 +242,4 @@ plt.xlabel('Epoch')
 plt.ylabel('Loss')
 plt.savefig(join(LOSS_PATH,name))
 plt.close(fig)
-
-'''
-class Autoencoder(nn.Module):
-    def __init__(self, dim_rep = 32, channels = 16):
-        super(AutoEncoder, self).__init__()
-        self.Encoder = Encoder(dim_rep = dim_rep, channels = channels)
-        self.Decoder = Decoder(dim_rep = dim_rep, channels = channels)
-    def forward(self,x):
-        Enc = self.Encoder(Dec)
-        Dec = self.Decoder(Enc)
-        return Enc, Dec
-
-class Encoder(nn.Module):
-    def __init__(self, dim_rep = 32, channels = 16):
-        super(Encoder,self).__init__()
-        self.cnn1 = nn.Conv2d(in_channels = 1, out_channels = channels, kernel_size = 3, padding = 1) # 28x28-> 28x28
-        self.cnn2 = nn.Conv2d(in_channels = 2*channels, out_channels = 4*channels, kernel_size = 3, padding = 1) # 14x14 -> 14x14
-        self.cnn3 = nn.Conv2d(in_channels = 4*channels, out_channels = dim_rep, kernel_size = 13) # 7x7 -> 1x1
-
-        self.relu = nn.ReLU()
-        self.mp = nn.MaxPool2d(kernel_size = 2)
-
-    def forward(self,x):
-        x = self.mp(self.relu(self.cnn1(x)))
-        x = self.mp(self.relu(self.cnn2(x)))
-        x = self.relu(self.cnn3(x))
-
-class Decoder(nn.Module):
-    def __init__(self, dim_rep = 32, channels = 16):
-        super(Decoder,self).__init__()
-'''
-        
-
-
-
 
