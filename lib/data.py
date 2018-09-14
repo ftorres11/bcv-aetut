@@ -12,12 +12,12 @@ from torchvision.datasets import MNIST
 # Class Definition
 #-------------------------------------------------------------------------
 class Noisy_MNIST():
-    def __init__(self, ROOT_MNIST, n_level):
-        MNIST_db = MNIST(root = ROOT_MNIST,train = True, download = True, 
+    def __init__(self, data_root, noise_level):
+        MNIST_db = MNIST(root = data_root,train = True, download = True, 
             transform=torchvision.transforms.ToTensor())
         self.getitem = MNIST_db.__getitem__
         self.len = MNIST_db.__len__()
-        self.noise_level = n_level
+        self.noise_level = noise_level
 
     def __len__(self):
         return self.len

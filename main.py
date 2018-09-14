@@ -34,7 +34,7 @@ LOSS_PATH = '../results'
 # Parser Arguments
 parser = argparse.ArgumentParser(description='Train an autoencoder')
 parser.add_argument('--learning_rate',
-    help='Learning rate of the algoryth.', dest = 'lr',
+    help='Learning rate of the algorythm.', dest = 'lr',
     default=0.00001, type=float, required = True)
 
 parser.add_argument('--epochs', help='Number of epochs', dest = 'epochs',
@@ -47,7 +47,7 @@ parser.add_argument('--noise_level', help='Batch size per iteration',
     dest = 'noise', default=0.05, type=float, required = True)
 parser.add_argument('--mkimage', help='{} {}'.format('Generate images',
     'randomly every 10 epochs'), dest = 'mkimage', default = True, 
-     type=bool,required = True)
+     type=bool,required = False)
 parser.add_argument('--dest', help='Destination to store output images',
     dest='name', default='experiment', type = str, required = False)
 args = parser.parse_args()
@@ -72,16 +72,18 @@ total = MNIST_db.__len__()
 
 #-------------------------------------------------------------------------
 # Checking existance of target directory
-if not os.path.exists(exp_route)):
+if not os.path.exists(exp_route):
     os.makedirs(exp_route)
 else:
     shutil.rmtree(exp_route)
-    
+    os.makedirs(exp_route)
+   
 #-------------------------------------------------------------------------
 # Allocating devices and allocating sets
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-train = Data.DataLoader(dataset = Noisy_MNIST(noise_level = noise_level), 
-    batch_size = BATCH_SIZE, shuffle = True)
+pdb.set_trace()
+train = Data.DataLoader(dataset = Noisy_MNIST(data_root = ROOT_MNIST,
+    noise_level = noise_level), batch_size = BATCH_SIZE, shuffle = True)
 
 #-------------------------------------------------------------------------
 # Loading Model and functions
@@ -130,7 +132,7 @@ for epoch in range(n_epochs):
     plotloss[epoch] = running_loss
 
 
-torch.save(model.state_dict(), exp_route,'model.pkl'))
+torch.save(model.state_dict(), exp_route,'model.pkl')
 
 fig = plt.figure()
 plt.plot([i+1 for i in range(len(plotloss))], plotloss, 'r')
