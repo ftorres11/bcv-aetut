@@ -131,7 +131,7 @@ for epoch in range(n_epochs):
     plotloss[epoch] = running_loss
 
 
-torch.save(model.state_dict(), exp_route,'model.pkl')
+torch.save(model.state_dict(), join(exp_route,'model.pkl'))
 
 fig = plt.figure()
 plt.plot([i+1 for i in range(len(plotloss))], plotloss, 'r')
