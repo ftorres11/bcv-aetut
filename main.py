@@ -81,7 +81,6 @@ else:
 #-------------------------------------------------------------------------
 # Allocating devices and allocating sets
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
-pdb.set_trace()
 train = Data.DataLoader(dataset = Noisy_MNIST(data_root = ROOT_MNIST,
     noise_level = noise_level), batch_size = BATCH_SIZE, shuffle = True)
 
